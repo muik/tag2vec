@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block content %}
+  {% if data['no_words'] %}
+    <h4>등록되지 않은 태그: <strong>{{ data['no_words']|join('</strong>, <strong>') }}</strong></h4>
+    <p>다른 태그로 검색해보세요.</p>
+  {% endif %}
+  {% if 'analogy' in data %}
+    <h4>{{ data['words'][0] }} - {{ data['words'][1] }} ≈ {{ data['words'][2] }} - <a href="/?q={{ data['analogy'] }}">{{ data['analogy'] }}</a></h4>
+  {% endif %}
+  {% if 'nearby' in data %}
+    <h3>{{ query }}</h3>
+    <div class="col-md-6" style="padding:0 16px 0 0">
+      <h4>비슷한 태그</h4>
+      <table class="table">
+        {% for word, distance in data['nearby'] %}
+        <tr>
+          <td><a class="tag_name" href="/?q={{ word }}">{{ word }}</a></td>
+          <td><small>{{ distance|round(2) }}</small></td>
+          <td class="btn-col">
+            <a class="btn btn-default btn-sm" href="/?q={{ query }} {{ word }}">+</a>
+            <a class="btn btn-default btn-sm" href="/?q={{ query }} -{{ word }}">-</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% if 'tag' in data %}
+    <div class="col-md-6" style="padding:0">
+      <h4>{{ data['tag'] }} 사진</h4>
+      <div class="media"></div>
+      <small><a href="https://www.instagram.com/explore/tags/{{ data['tag'] }}/" target="_blank">인스타그램에서 더보기</a></small>
+    </div>
+    {% endif %}
+  {% endif %}
+  {% if 'doesnt_match' in data %}
+    <h3>{{ query }}</h3>
+    <h4>가장 거리 먼 태그: <a href="/?q={{ data['doesnt_match'] }}">{{ data['doesnt_match'] }}</a></h4>
+  {% endif %}
+{% endblock %}
+
+{% block bottom %}
+  <script type="text/javascript">
+  var tag = '{{ data['tag'] }}'.trim();
+  if (tag.length > 0) {
+    var mediaElement = $('.media');
+    mediaElement.html('불러오는 중..');
+    $.get('/tags/' + tag + '/media.js').done(function(data) {
+      mediaElement.html('');
+      for (i in data['media']) {
+        var item = data['media'][i];
+        mediaElement.append('<a href="https://www.instagram.com/p/' + item['code']
+          + '/" target="_blank"><img src="' + item['thumbnail_src'] + '" /></a>');
+      }
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+      mediaElement.html('error: ' + textStatus);
+    });
+  }
+  </script>
+{% endblock %}

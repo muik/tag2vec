@@ -1,0 +1,114 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<style>
+#embed {border: 1px solid #ccc; height: 300px; margin-bottom:15px}
+#disqus_thread {margin-top:30px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="embed"></div>
+<p>인스타그램 태그를 Word2vec으로 학습시킨 <strong>태그 벡터 공간</strong>입니다. 데이터베이스가 아닌 {{ data['emb_dim'] }}차원의 벡터공간에 있는 태그를 검색해보세요!</p>
+<p>학습 데이터가 아직 많지 않아서 없는 결과나 어설픈 결과가 나올 수 있습니다. 사전 태그 수: {{ "{:,.0f}".format(data['vocab_size']) }}개</p>
+<h3>검색 예</h3>
+<h4>유사 태그 (태그1 태그2 ...)</h4>
+<ul>
+  {% for q in ['흑돼지', '수요미식회 삼선고추짬뽕', '계곡 물놀이 힐링'] %}
+  <li><a href="/?q={{ q|urlencode }}">{{ q }}</a></li>
+  {% endfor %}
+</ul>
+<h4>유추 하기 (태그1 - 태그2 + 태그3)</h4>
+<ul>
+  <li><a href="/?q={{ '이태원 - 경리단길 + 신사동'|urlencode }}">이태원 - 경리단길 + 신사동</a><br /> <small>(이태원에는 경리단길이 있다면 신사동에는?)</small></li>
+  {% for q in ['제주도 - 한라산 + 부산', '물냉 - 물냉면 + 비냉', '매봉역 - 매봉역맛집 + 강남역'] %}
+  <li><a href="/?q={{ q|urlencode }}">{{ q }}</a></li>
+  {% endfor %}
+</ul>
+<h4>유사 태그에 부정 추가 (태그1 -태그2 ...)</h4>
+<ul>
+  <li><a href="/?q={{ '판교 판교맛집 -판교역'|urlencode }}">판교 판교맛집 -판교역</a><br /> <small>(판교 맛집인데 판교역이 아니면?)</small></li>
+</ul>
+<h4>가장 거리가 먼 태그 (<string>!</string> 태그1 태그2 태그3 ...)</h4>
+<ul>
+  {% for q in ['! 소주 맥주 와인 비행기', '! 제주도 우도 냠냠 마라도'] %}
+  <li><a href="/?q={{ q|urlencode }}">{{ q }}</a></li>
+  {% endfor %}
+</ul>
+<div id="disqus_thread"></div>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+{% endblock %}
+
+{% block bottom %}
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
+var data = null;
+var tx=0, ty=0, ss=1;
+var embed = $("#embed");
+var embedWidth = embed.width();
+var svg = d3.select("#embed").append("svg") // svg is global
+        .attr("width", embedWidth)
+        .attr("height", embed.height());
+
+function zoomHandler() {
+  tx = d3.event.translate[0];
+  ty = d3.event.translate[1];
+  ss = d3.event.scale;
+  updateEmbedding();
+}
+
+var zoomListener = d3.behavior.zoom()
+  .scaleExtent([0.1, 8])
+  .center([0,0])
+  .on("zoom", zoomHandler);
+zoomListener(svg);
+
+function updateEmbedding() {
+  if (data == null) return;
+  svg.selectAll('.u')
+      .data(data.labels)
+      .attr("transform", function(d, i) { return "translate(" +
+                                        ((data.embs[i][0]*7*ss + tx) + embedWidth/2.5) + "," +
+                                        ((data.embs[i][1]*7*ss + ty) + 150) + ")"; });
+}
+
+$.getJSON('/tsne.js').done(function(response) {
+  data = response;
+  
+  var g = svg.selectAll(".b")
+    .data(data.labels)
+    .enter().append("g")
+    .attr("class", "u");
+
+  g.append("text")
+    .attr("text-anchor", "top")
+    .attr("font-size", 12)
+    .attr("fill", "#333")
+    .text(function(d) { return d; });
+
+  updateEmbedding();
+}).fail(function() {
+  console.log(arguments);
+});
+
+$(window).resize(function() {
+  var width = embed.width();
+  if (embedWidth == width) {
+    return;
+  }
+  embedWidth = width;
+  svg.attr("width", embedWidth)
+    .attr("height", embed.height());
+  updateEmbedding();
+});
+</script>
+
+<script>
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//tag2vec.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+{% endblock %}

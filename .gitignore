@@ -1,0 +1,6 @@
+*.pyc
+*.swp
+*.sh
+.DS_Store
+train
+data
