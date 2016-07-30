@@ -399,7 +399,7 @@ class Word2Vec(object):
     wid = np.array([[self._word2id.get(w, 0) for w in [w0, w1, w2]]])
     idx = self._predict(wid)
     for c in [self._id2word[i] for i in idx[0, :]]:
-      if c not in [w0, w1, w2]:
+      if c not in [w0, w1, w2, 'UNK']:
         return c
     return
 
