@@ -83,7 +83,7 @@ def _add_recent_queries(q):
   cache.set(KEY_RECENT_QUERIES, recent_queries)
 
 def _get_recent_queries():
-  return (cache.get(KEY_RECENT_QUERIES) or '').strip().split()
+  return (cache.get(KEY_RECENT_QUERIES) or '').strip().split('\n')
 
 
 if __name__ == "__main__":
