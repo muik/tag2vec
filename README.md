@@ -5,6 +5,13 @@ Tensorflow의 [word2vec_optimized.py](https://github.com/tensorflow/tensorflow/b
 
 ![tsne](./static/tsne.png)
 
+## Requirements
+- Linux or Mac OS
+- [Python](https://www.python.org/) 2.7
+- [Tensorflow](https://www.tensorflow.org/) 0.9+
+- [Flask](http://flask.pocoo.org/)
+- [sklearn](http://scikit-learn.org/)
+
 ## 학습 데이터
 인스타그램에서 올려진 글에서 태그를 추출하여 이어지는 태그를 문장으로 취급하였습니다.
 하지만 글들의 이어지는 태그는 연관성이 없어서 skip-gram model에서 window 선택시 해당 문장에서만 선택하도록 학습하였습니다.
