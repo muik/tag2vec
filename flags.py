@@ -102,9 +102,12 @@ class Options(object):
     opts.min_count = 7
 
     with open(os.devnull, 'w') as FNULL:
-      if subprocess.call(['ls', 'train'], stdout=FNULL) != 0:
-        subprocess.call(['wget', 'https://muik-projects.firebaseapp.com/tf/tag2vec-train.tgz'],
-            stdout=FNULL)
-        subprocess.call(['tar', 'xvfz', 'tag2vec-train.tgz'])
-        subprocess.call(['rm', 'tag2vec-train.tgz'])
+      if subprocess.call(['ls', opts.save_path], stdout=FNULL) != 0:
+        if subprocess.call(['ls', opts.train_data], stdout=FNULL) == 0:
+          subprocess.call(['mkdir', opts.save_path])
+        else:
+          subprocess.call(['wget', 'https://muik-projects.firebaseapp.com/tf/tag2vec-train.tgz'],
+              stdout=FNULL)
+          subprocess.call(['tar', 'xvfz', 'tag2vec-train.tgz'])
+          subprocess.call(['rm', 'tag2vec-train.tgz'])
     return opts
