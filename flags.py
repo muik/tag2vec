@@ -99,7 +99,7 @@ class Options(object):
     opts.save_path = 'train'
     opts.eval_data = 'data/questions-tags.txt'
     opts.window_size = 5
-    opts.min_count = 10
+    opts.min_count = 7
 
     with open(os.devnull, 'w') as FNULL:
       if subprocess.call(['ls', 'train'], stdout=FNULL) != 0:
