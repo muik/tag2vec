@@ -1,0 +1,8 @@
+{% extends "layout.html" %}
+{% block content %}
+<ul>
+  {% for query in queries %}
+  <li><a href="/?q={{ query }}">{{ query }}</a></li>
+  {% endfor %}
+</ul>
+{% endblock %}

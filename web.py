@@ -21,6 +21,7 @@ def main():
   if not q:
     data = {'vocab_size': model.get_vocab_size(), 'emb_dim': model.get_emb_dim() }
     return render_template('index.html', query='', data=data)
+  _add_recent_queries(q)
   return query(q)
 
 def query(q):
@@ -63,6 +64,26 @@ def tag_media(tag_name):
 @app.route("/tsne.js", methods=['GET'])
 def tsne_js():
   return send_from_directory('train', 'tsne.js')
+
+@app.route("/recent_queries", methods=['GET'])
+def recent_queries():
+  queries = _get_recent_queries()
+  return render_template('recent_queries.html', queries=queries)
+
+MAX_RECENT_QUERIES_LENGTH = 500
+KEY_RECENT_QUERIES = 'recent_queries'
+
+def _add_recent_queries(q):
+  recent_queries = cache.get(KEY_RECENT_QUERIES) or ''
+  recent_queries += q + '\n'
+  length = len(recent_queries)
+  if length > MAX_RECENT_QUERIES_LENGTH:
+    index = recent_queries.find('\n', length - MAX_RECENT_QUERIES_LENGTH)
+    recent_queries = recent_queries[index+1]
+  cache.set(KEY_RECENT_QUERIES, recent_queries)
+
+def _get_recent_queries():
+  return (cache.get(KEY_RECENT_QUERIES) or '').strip().split()
 
 
 if __name__ == "__main__":
