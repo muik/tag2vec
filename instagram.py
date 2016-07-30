@@ -19,7 +19,8 @@ class Instagram:
     e = content.index(';</script>', s)
     dumps = content[s:e]
     obj = json.loads(dumps)
-    nodes = obj['entry_data']['TagPage'][0]['tag']['top_posts']['nodes'] or obj['entry_data']['TagPage'][0]['tag']['media']['nodes']
+    nodes = obj['entry_data']['TagPage'][0]['tag']['top_posts']['nodes'] \
+            + obj['entry_data']['TagPage'][0]['tag']['media']['nodes']
     """
     print(obj['entry_data']['TagPage'][0]['tag']['top_posts'].keys()) # [u'media', u'content_advisory', u'top_posts', u'name']
     print(obj['entry_data']['TagPage'][0]['tag']['media'].keys()) # [u'count', u'page_info', u'nodes']

@@ -57,7 +57,7 @@ def tag_media(tag_name):
   json = cache.get(key)
   if not json:
     media = instagram.media(tag_name)
-    json = jsonify(media=media)
+    json = jsonify(media=media[:12])
     cache.set(key, json, timeout=60*60)
   return json
 
