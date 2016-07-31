@@ -68,8 +68,8 @@ function updateEmbedding() {
   svg.selectAll('.u')
       .data(data.labels)
       .attr("transform", function(d, i) { return "translate(" +
-                                        ((data.embs[i][0]*7*ss + tx) + embedWidth/2.5) + "," +
-                                        ((data.embs[i][1]*7*ss + ty) + 150) + ")"; });
+                                        ((data.embs[i][0]*7*ss + tx) + embedWidth/2) + "," +
+                                        ((data.embs[i][1]*7*ss + ty) + embed.height()/2) + ")"; });
 }
 
 $.getJSON('/tsne.js').done(function(response) {
