@@ -2,16 +2,24 @@ import os
 import re
 import logging
 import tensorflow as tf
+import json
 from flask import Flask, request, render_template, jsonify, send_from_directory
-from werkzeug.contrib.cache import SimpleCache
+from flask import Response
 from word2vec_optimized import Tag2vec
 from instagram import Instagram
+
+NEARBY_COUNT = 12
 
 app = Flask(__name__)
 model = Tag2vec().model
 instagram = Instagram()
-NEARBY_COUNT = 12
-cache = SimpleCache()
+
+if os.environ.get('MEMCACHEDCLOUD_SERVERS'):
+  from cache import MemcachedCache
+  cache = MemcachedCache()
+else:
+  from werkzeug.contrib.cache import SimpleCache
+  cache = SimpleCache()
 
 @app.route("/", methods=['GET'])
 def main():
@@ -54,12 +62,13 @@ def query(q):
 @app.route("/tags/<string:tag_name>/media.js", methods=['GET'])
 def tag_media(tag_name):
   key = '/tags/%s/media.js' % tag_name
-  json = cache.get(key)
-  if not json:
+  data = cache.get(key)
+  if not data:
     media = instagram.media(tag_name)
-    json = jsonify(media=media[:12])
-    cache.set(key, json, timeout=60*60)
-  return json
+    media = {'media': media[:12]} 
+    data = json.dumps(media)
+    cache.set(key, data, timeout=60*60)
+  return Response(response=data, status=200, mimetype='application/json')
 
 @app.route("/tsne.js", methods=['GET'])
 def tsne_js():
