@@ -100,6 +100,7 @@ class Options(object):
     opts.eval_data = 'data/questions-tags.txt'
     opts.window_size = 5
     opts.min_count = 7
+    opts.emb_dim = 100
 
     with open(os.devnull, 'w') as FNULL:
       if subprocess.call(['ls', opts.save_path], stdout=FNULL) != 0:
