@@ -413,9 +413,10 @@ class Word2Vec(object):
     from sklearn.manifold import TSNE
     import json
     tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
-    plot_only = 500
     with self._session.as_default():
-      low_dim_embs = tsne.fit_transform(self._w_in.eval()[:plot_only,:])
+      all_embs = self._w_in.eval()
+      plot_only = min(500, all_embs.shape[0])
+      low_dim_embs = tsne.fit_transform(all_embs[:plot_only,:])
     labels = [self._id2word[i] for i in xrange(plot_only)]
     embs = [list(e) for e in low_dim_embs]
     json_data = json.dumps({'embs': embs, 'labels': labels})
