@@ -2,7 +2,7 @@
 {% block content %}
 <ul>
   {% for query in queries %}
-  <li><a href="/?q={{ query }}">{{ query }}</a></li>
+  <li><a href="/?q={{ query|urlencode }}">{{ query }}</a></li>
   {% endfor %}
 </ul>
 {% endblock %}
