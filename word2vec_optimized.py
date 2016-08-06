@@ -275,8 +275,10 @@ class Word2Vec(object):
       for i, center_id in enumerate(line):
         if center_id == unk_id:
           continue
-        outputs = line[max(0, i-window_size):i] + line[min(words_count-1, i+1):min(words_count-1, i+1+window_size)]
-        outputs = [x for x in outputs if x != unk_id and x != center_id]
+        start_index = max(0, i-window_size)
+        end_index = min(words_count, i + 1 + window_size)
+        outputs = line[start_index:end_index]
+        outputs = filter(lambda x: x != unk_id and x != center_id, outputs)
         outputs_count = len(outputs)
         examples += [center_id] * outputs_count
         labels += outputs
