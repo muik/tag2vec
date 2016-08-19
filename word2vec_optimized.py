@@ -41,6 +41,7 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 
 from tensorflow.models.embedding import gen_word2vec as word2vec
 from flags import FLAGS, Options
@@ -61,7 +62,7 @@ class Word2Vec(object):
       self._read_analogies()
     if not options.emb_data and not options.interactive:
       self.save_vocab()
-    if options.train_data and not options.interactive:
+    if not options.emb_data and options.train_data and not options.interactive:
       self._load_corpus()
 
   def _read_analogies(self):
@@ -101,7 +102,6 @@ class Word2Vec(object):
   def load_emb(self):
     start_time = time.time()
     opts = self._options
-    import pandas as pd
 
     if opts.emb_data:
       values = pd.read_csv(opts.emb_data, delimiter=' ',
@@ -119,7 +119,6 @@ class Word2Vec(object):
       self._id2word = np.loadtxt(os.path.join(opts.save_path, "vocab.txt"),
           'str', unpack=True)[0]
 
-    print(self._id2word)
     self._id2word = [str(x).decode('utf-8') for x in self._id2word]
     for i, w in enumerate(self._id2word):
       self._word2id[w] = i
@@ -463,7 +462,7 @@ class Word2Vec(object):
 
 def main(_):
   """Train a word2vec model."""
-  opts = Options.train()
+  opts = Options()
   if not opts.train_data and opts.eval_data:
     with tf.Graph().as_default(), tf.Session() as session:
       model = Word2Vec(opts, session)
