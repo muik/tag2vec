@@ -39,6 +39,7 @@ flags.DEFINE_boolean(
     "If true, enters an IPython interactive session to play with the trained "
     "model. E.g., try model.analogy(b'france', b'paris', b'russia') and "
     "model.nearby([b'proton', b'elephant', b'maxwell'])")
+flags.DEFINE_string("emb_data", None, "Intial vector data.")
 
 FLAGS = flags.FLAGS
 
@@ -85,6 +86,9 @@ class Options(object):
     # Where to write out summaries.
     self.save_path = FLAGS.save_path
 
+    # initial word embed data
+    self.emb_data = FLAGS.emb_data
+
     # Eval options.
 
     # The text file for eval.
@@ -93,7 +97,31 @@ class Options(object):
     self.interactive = FLAGS.interactive
 
   @classmethod
-  def tag(cls):
+  def web(cls):
+    opts = Options()
+    opts.save_path = 'train'
+    opts.emb_dim = 100
+    opts.interactive = True
+
+    emb_data = 'train/model.vec'
+    if os.path.isfile(emb_data):
+      opts.emb_data = emb_data
+    else:
+      opts.train_data = 'data/tags.txt'
+
+      with open(os.devnull, 'w') as FNULL:
+        if subprocess.call(['ls', opts.save_path], stdout=FNULL) != 0:
+          if subprocess.call(['ls', opts.train_data], stdout=FNULL) == 0:
+            subprocess.call(['mkdir', opts.save_path])
+          else:
+            subprocess.call(['wget', 'https://muik-projects.firebaseapp.com/tf/tag2vec-train.tgz'],
+                stdout=FNULL)
+            subprocess.call(['tar', 'xvfz', 'tag2vec-train.tgz'])
+            subprocess.call(['rm', 'tag2vec-train.tgz'])
+    return opts
+
+  @classmethod
+  def train(cls):
     opts = Options()
     opts.train_data = 'data/tags.txt'
     opts.save_path = 'train'
@@ -101,14 +129,4 @@ class Options(object):
     opts.window_size = 5
     opts.min_count = 7
     opts.emb_dim = 100
-
-    with open(os.devnull, 'w') as FNULL:
-      if subprocess.call(['ls', opts.save_path], stdout=FNULL) != 0:
-        if subprocess.call(['ls', opts.train_data], stdout=FNULL) == 0:
-          subprocess.call(['mkdir', opts.save_path])
-        else:
-          subprocess.call(['wget', 'https://muik-projects.firebaseapp.com/tf/tag2vec-train.tgz'],
-              stdout=FNULL)
-          subprocess.call(['tar', 'xvfz', 'tag2vec-train.tgz'])
-          subprocess.call(['rm', 'tag2vec-train.tgz'])
     return opts

@@ -1,17 +1,27 @@
 import os
 import re
 import logging
-import tensorflow as tf
 import json
+import time
+
+import tensorflow as tf
 from flask import Flask, request, render_template, jsonify, send_from_directory
 from flask import Response
-from word2vec_optimized import Tag2vec
+from word2vec_optimized import Word2Vec
 from instagram import Instagram
+from flags import Options
 
 NEARBY_COUNT = 12
 
+def get_model():
+  opts = Options.web()
+  session = tf.Session()
+  return Word2Vec(opts, session)
+
 app = Flask(__name__)
-model = Tag2vec().model
+start_time = time.time()
+model = get_model()
+print("--- model load time: %.1f seconds ---" % (time.time() - start_time))
 instagram = Instagram()
 
 if os.environ.get('MEMCACHEDCLOUD_SERVERS'):
@@ -72,7 +82,7 @@ def tag_media(tag_name):
 
 @app.route("/tsne.js", methods=['GET'])
 def tsne_js():
-  return send_from_directory('train', 'tsne.js')
+  return send_from_directory(model.get_save_path(), 'tsne.js')
 
 @app.route("/recent_queries", methods=['GET'])
 def recent_queries():

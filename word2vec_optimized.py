@@ -52,11 +52,16 @@ class Word2Vec(object):
     self._session = session
     self._word2id = {}
     self._id2word = []
-    self.build_graph()
+    if options.emb_data or options.interactive:
+      self.load_emb()
+    else:
+      self.build_graph()
     self.build_eval_graph()
-    if not options.interactive:
-      self.save_vocab()
+    if options.eval_data:
       self._read_analogies()
+    if not options.emb_data and not options.interactive:
+      self.save_vocab()
+    if options.train_data and not options.interactive:
       self._load_corpus()
 
   def _read_analogies(self):
@@ -93,18 +98,42 @@ class Word2Vec(object):
   def get_emb_dim(self):
     return self._options.emb_dim
 
+  def load_emb(self):
+    start_time = time.time()
+    opts = self._options
+    import pandas as pd
+
+    if opts.emb_data:
+      values = pd.read_csv(opts.emb_data, delimiter=' ',
+          skiprows=1, header=0, usecols=[0]).values
+      self._id2word = np.transpose(values)[0]
+      if self._id2word[0] == '</s>':
+        self._id2word[0] = 'UNK'
+      initial_value = pd.read_csv(opts.emb_data, delimiter=' ',
+          skiprows=1, header=0, usecols=range(1, 101)).values
+
+      path = os.path.join(self._options.save_path, 'tsne.js')
+      if not os.path.isfile(path):
+        self._export_tsne(initial_value)
+    else:
+      self._id2word = np.loadtxt(os.path.join(opts.save_path, "vocab.txt"),
+          'str', unpack=True)[0]
+
+    print(self._id2word)
+    self._id2word = [str(x).decode('utf-8') for x in self._id2word]
+    for i, w in enumerate(self._id2word):
+      self._word2id[w] = i
+    opts.vocab_size = len(self._id2word)
+
+    if opts.emb_data:
+      self._w_in = tf.Variable(initial_value, name="w_in")
+    else:
+      self._w_in = tf.get_variable('w_in', [opts.vocab_size, opts.emb_dim])
+    print("--- embed data load time: %.1f seconds ---" % (time.time() - start_time))
+
   def build_graph(self):
     """Build the model graph."""
     opts = self._options
-
-    if opts.interactive:
-      self._id2word = np.loadtxt(os.path.join(opts.save_path, "vocab.txt"), 'str', unpack=True)[0]
-      self._id2word = [x.decode('utf-8') for x in self._id2word]
-      for i, w in enumerate(self._id2word):
-        self._word2id[w] = i
-      opts.vocab_size = len(self._id2word)
-      self._w_in = tf.get_variable('w_in', [opts.vocab_size, opts.emb_dim])
-      return
 
     # The training data. A text file.
     (words, counts, words_per_epoch, current_epoch, total_words_processed,
@@ -239,14 +268,16 @@ class Word2Vec(object):
     self._negative_word_ids = negative_word_ids
     self._analogy_pred_idx = pred_idx
 
+    ckpt = None
     self.saver = tf.train.Saver()
-    ckpt = tf.train.latest_checkpoint(os.path.join(opts.save_path))
+    if not opts.emb_data:
+      ckpt = tf.train.latest_checkpoint(os.path.join(opts.save_path))
     if ckpt:
       self.saver.restore(self._session, ckpt)
       print('loaded %s' % ckpt)
     else:
       # Properly initialize all variables.
-      tf.initialize_all_variables().run()
+      self._session.run(tf.initialize_all_variables())
 
   def _load_corpus(self):
     corpus = []
@@ -408,34 +439,43 @@ class Word2Vec(object):
   def save(self):
     opts = self._options
     self.saver.save(self._session, os.path.join(opts.save_path, "model.ckpt"))
-    self.export_tsne()
+    all_embs = self._session.run(self._w_in)
+    self._export_tsne(all_embs)
     print('Saved')
 
-  def export_tsne(self):
+  def _export_tsne(self, all_embs):
     from sklearn.manifold import TSNE
     import json
     tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
-    with self._session.as_default():
-      all_embs = self._w_in.eval()
-      plot_only = min(500, all_embs.shape[0])
-      low_dim_embs = tsne.fit_transform(all_embs[:plot_only,:])
+    plot_only = min(500, all_embs.shape[0])
+    low_dim_embs = tsne.fit_transform(all_embs[:plot_only,:])
     labels = [self._id2word[i] for i in xrange(plot_only)]
     embs = [list(e) for e in low_dim_embs]
     json_data = json.dumps({'embs': embs, 'labels': labels})
-    with open(os.path.join(self._options.save_path, 'tsne.js'), 'w') as f:
+    path = os.path.join(self._options.save_path, 'tsne.js')
+    with open(path, 'w') as f:
       f.write(json_data)
+      print('%s exported' % path)
+
+  def get_save_path(self):
+    return self._options.save_path
 
 
 def main(_):
   """Train a word2vec model."""
-  opts = Options.tag()
+  opts = Options.train()
+  if not opts.train_data and opts.eval_data:
+    with tf.Graph().as_default(), tf.Session() as session:
+      model = Word2Vec(opts, session)
+      model.eval()  # Eval analogies.
+      return
+
   if not opts.train_data or not opts.save_path or not opts.eval_data:
     print("--train_data --eval_data and --save_path must be specified.")
     sys.exit(1)
 
   with tf.Graph().as_default(), tf.Session() as session:
-    with tf.device("/cpu:0"):
-      model = Word2Vec(opts, session)
+    model = Word2Vec(opts, session)
     for i in xrange(opts.epochs_to_train):
       model.train()  # Process one epoch
       accuracy = model.eval()  # Eval analogies.
@@ -443,14 +483,6 @@ def main(_):
         model.save()
     if opts.epochs_to_train % 5 != 0:
       model.save()
-
-
-class Tag2vec:
-  def __init__(self):
-    opts = Options.tag()
-    opts.interactive = True
-    session = tf.Session()
-    self.model = Word2Vec(opts, session)
 
 
 if __name__ == "__main__":
