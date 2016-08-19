@@ -104,17 +104,13 @@ class Word2Vec(object):
     opts = self._options
 
     if opts.emb_data:
-      values = pd.read_csv(opts.emb_data, delimiter=' ',
+      with open(opts.emb_data) as f:
+        opts.emb_dim = int(f.readline().split()[1])
+      self._id2word = pd.read_csv(opts.emb_data, delimiter=' ',
           skiprows=1, header=0, usecols=[0]).values
-      self._id2word = np.transpose(values)[0]
+      self._id2word = np.transpose(self._id2word)[0]
       if self._id2word[0] == '</s>':
         self._id2word[0] = 'UNK'
-      initial_value = pd.read_csv(opts.emb_data, delimiter=' ',
-          skiprows=1, header=0, usecols=range(1, 101)).values
-
-      path = os.path.join(self._options.save_path, 'tsne.js')
-      if not os.path.isfile(path):
-        self._export_tsne(initial_value)
     else:
       self._id2word = np.loadtxt(os.path.join(opts.save_path, "vocab.txt"),
           'str', unpack=True)[0]
@@ -125,7 +121,16 @@ class Word2Vec(object):
     opts.vocab_size = len(self._id2word)
 
     if opts.emb_data:
-      self._w_in = tf.Variable(initial_value, name="w_in")
+      def initializer(shape, dtype):
+        initial_value = pd.read_csv(opts.emb_data, delimiter=' ',
+            skiprows=1, header=0, usecols=range(1, opts.emb_dim+1)).values
+        if opts.save_path:
+          path = os.path.join(opts.save_path, 'tsne.js')
+          if not os.path.isfile(path):
+            self._export_tsne(initial_value)
+        return initial_value
+      self._w_in = tf.get_variable('w_in', [opts.vocab_size, opts.emb_dim],
+          initializer=initializer)
     else:
       self._w_in = tf.get_variable('w_in', [opts.vocab_size, opts.emb_dim])
     print("--- embed data load time: %.1f seconds ---" % (time.time() - start_time))
